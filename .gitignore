@@ -1,0 +1,6 @@
+*.venv
+*.idea
+src/__pycache__
+output-graphs/*
+.vscode
+# input-graphs

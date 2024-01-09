@@ -3,6 +3,8 @@ from pyvis.network import Network
 from component import Component
 from interval import Interval
 
+import os
+
 
 class Graph:
     show_count = 0  # Class-level variable to keep track of show calls
@@ -18,15 +20,21 @@ class Graph:
             self.adjacency_list[u].add(v)
             self.adjacency_list[v].add(u)
             
+        self.components = {}
+        self.num_of_components = {}
+        self.intervals = {}
+            
     
     def compute_all_components(self):
-        components = {}
+        print("self.vertices:", self.vertices)
         for vertex in self.vertices:
             vertex_components = self.compute_components_of_vertex(vertex)
+            print("vertex_components:", vertex_components)
+            self.num_of_components[vertex] = len(vertex_components)
             for i in range(len(vertex_components)):
-                components[(vertex, i)] = Component(vertex, i, vertex_components[i])
+                self.components[(vertex, i)] = Component(vertex, i, vertex_components[i])
                 
-        return components
+        
                 
        
         
@@ -66,22 +74,39 @@ class Graph:
     
     
     def compute_all_intervals(self):
-        intervals = {}
         for x in self.vertices:
             for y in self.vertices:
                 if x != y and y not in self.adjacency_list[x]:
-                    intervals[(x, y)] = Interval(x, y, self.compute_interval(x, y))
-        return intervals
+                    interval = self.compute_interval(x, y)
+                    if interval:
+                        self.intervals[(x, y)] = Interval(x, y, interval)
+        return self.intervals
     
     
     def compute_interval(self, x, y):
         if y in self.adjacency_list[x]:
             raise ValueError("Vertices x and y are adjacent. Interval can only be computed for nonadjacent vertices.")
 
-        neighbors_x = self.adjacency_list[x]
-        neighbors_y = self.adjacency_list[y]
+        Cx_y = None
+        Cy_x = None
+        
+        #TODO: For all nonadjacent vertices x and x there is a pointer P(x,y) to the list of Cx_y
+        for i in range(self.num_of_components[x]):
+            component = self.components[(x, i)]
+            if y in component.vertices:
+                Cx_y = component.vertices
+                break
+        
+        for i in range(self.num_of_components[y]):
+            component = self.components[(y, i)]
+            if x in component.vertices:
+                Cy_x = component.vertices
+                break
+            
+        # print("Cx_y:", Cx_y)
+        # print("Cy_x:", Cy_x)
 
-        interval = (neighbors_x.union(neighbors_y) - neighbors_x.intersection(neighbors_y)) - {x, y}
+        interval = Cx_y.intersection(Cy_x) if Cx_y is not None and Cy_x is not None else None
         return interval
     
 
@@ -101,5 +126,7 @@ class Graph:
             u, v = edge
             net.add_edge(u, v, color="white")
 
-        file_name = f"../output-graphs/{graph_name}-{Graph.show_count}.html"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(script_dir, '..', 'output-graphs')
+        file_name = os.path.join(output_dir, f"{graph_name}-{Graph.show_count}.html")
         net.show(file_name)

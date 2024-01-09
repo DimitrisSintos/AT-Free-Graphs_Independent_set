@@ -7,7 +7,6 @@ class PolynomialTimeAlgorithm:
     def __init__(self,graph : Graph, weight : int):
         self.graph = graph
         self.weight = weight
-        self.components = {}
         self.intervals = {}
 
 
@@ -23,29 +22,30 @@ class PolynomialTimeAlgorithm:
         # Step 5. Compute α(G).
 
         # Step 1
-        self.components = self.graph.compute_all_components()
+        self.graph.compute_all_components()
         print("\nComponents:")
-        for component in self.components.values():
+        for component in self.graph.components.values():
             print(component)
+            
+        print("self.graph.num_of_components:", self.graph.num_of_components)
+            
+        
         
         # Step 2
-        self.intervals = self.graph.compute_all_intervals()
+        self.graph.compute_all_intervals()
         print("\nIntervals:")
-        for interval in self.intervals.values():
+        for interval in self.graph.intervals.values():
             print(interval)
                 
         # Step 3
-        sorted_components = sorted(self.components.keys(), key=lambda x: len(self.components[x]))
+        sorted_components = sorted(self.graph.components.keys(), key=lambda x: len(self.graph.components[x]))
         print("\nSorted components:", sorted_components, len(sorted_components), type(sorted_components))
         
         
-        sorted_intervals = sorted(self.intervals.keys(), key=lambda x: len(self.intervals[x]))
+        sorted_intervals = sorted(self.graph.intervals.keys(), key=lambda x: len(self.graph.intervals[x]))
         print("\nSorted intervals:", sorted_intervals, len(sorted_intervals), type(sorted_intervals))
         
         # Step 4
-        for key in sorted_intervals:
-            self.alpha_I(key)
-            
         for key in sorted_components:
             self.alpha_C(key)
             
@@ -57,7 +57,7 @@ class PolynomialTimeAlgorithm:
         
     
     def alpha_C(self,component_key):
-        component = self.components[component_key]
+        component = self.graph.components[component_key]
         print(component)
         if component.alpha is not None:
             return component.alpha
@@ -73,22 +73,19 @@ class PolynomialTimeAlgorithm:
             alpha_D_sum = sum(self.alpha_C(D_iy) for D_iy in self.compute_D_iy(y, component_vertices))
             max_alpha = max(max_alpha, alpha_I_xy + alpha_D_sum)
 
-        if component.alpha is not None:
-            return component.alpha
+
         alpha_value = 1 + max_alpha
         
         component.alpha = alpha_value
-        self.components[component_key] = component
         
     
-        print('Computed Component Alpha', self.components[component_key])
+        print('Computed Component Alpha', self.graph.components[component_key])
         return alpha_value
     
     def alpha_I(self, I):
         
         try:
-        
-            interval = self.intervals[I]
+            interval = self.graph.intervals[I]
             print("Interval:", interval)
             if interval.alpha is not None:
                 return interval.alpha
@@ -101,59 +98,57 @@ class PolynomialTimeAlgorithm:
             
 
             max_alpha = 0
-            for s in I_vertices:  # Assuming I is an iterable of vertices
-                alpha_I_xs = self.alpha_I((x, s))  # Assuming x and y are known in the context
+            for s in I_vertices: 
+                alpha_I_xs = self.alpha_I((x, s)) 
                 alpha_I_sy = self.alpha_I((s, y))
                 alpha_C_sum = sum(self.alpha_C(C_is) for C_is in self.compute_C_is(s, I_vertices))
                 max_alpha = max(max_alpha, alpha_I_xs + alpha_I_sy + alpha_C_sum)
                 
             
             
-            if interval.alpha is not None:
-                return interval.alpha
+           
             alpha_value = 1 + max_alpha
             
             interval.alpha = alpha_value
-            self.intervals[I] = interval
             
             
-            print('Computed Interval alpha:', self.intervals[I] )
+            print('Computed Interval alpha:', self.graph.intervals[I] )
             
             return alpha_value
         except:
+            print("Interval", I, "not found")
             return 0
+
+    def compute_components_subset(self, vertex, target_vertices, num_components):
+        """
+        Computes the components of G - N[vertex] contained in the target set.
+        
+        :param vertex: The vertex whose neighborhood defines the components.
+        :param target_vertices: The set of vertices that the component should be a subset of.
+        :param num_components: The number of components to consider.
+        :return: A list of component keys whose vertices are a subset of the target set.
+        """
+        computed_components = []
+        
+        for i in range(num_components):
+            component_key = (vertex, i)
+            component = self.graph.components[component_key]
+            if component.vertices.issubset(target_vertices):
+                computed_components.append(component_key)
+                    
+        return computed_components
 
     def compute_D_iy(self, y, Cx_vertices):
         """
-        D_iy are the components og G - N[y] contained in Cx
-        
+        D_iy are the components of G - N[y] contained in Cx.
         """
-        
-        computed_D_iy = []
-        
-        for component_key in self.components:
-            if component_key[0]== y:
-                component = self.components[component_key]
-                if component.vertices.issubset(Cx_vertices):
-                    computed_D_iy.append(component_key)
-                    
-        return computed_D_iy
-    
+        return self.compute_components_subset(y, Cx_vertices, self.graph.num_of_components[y])
+
     def compute_C_is(self, s, I_vertices):
         """
-        C_is are the components of G - N[s] contained in I
-        
+        C_is are the components of G - N[s] contained in I.
         """
-        
-        computed_C_is = []
-        
-        for component_key in self.components:
-            if component_key[0]== s:
-                component = self.components[component_key]
-                if component.vertices.issubset(I_vertices):
-                    computed_C_is.append(component_key)
-                    
-        return computed_C_is
+        return self.compute_components_subset(s, I_vertices, self.graph.num_of_components[s])
     
     def alpha_G(self):
         """
@@ -162,15 +157,12 @@ class PolynomialTimeAlgorithm:
         
         max_alpha = 0
         for x in self.graph.vertices:
-            x_components = []
-            for component_key in self.components:
-                if component_key[0]== x:
-                    x_components.append(component_key)
-                    
-            alpha_C_sum = sum(self.alpha_C(component_key) for component_key in x_components)
+            alpha_C_sum = sum(self.alpha_C((x,i)) for i in range(self.graph.num_of_components[x]))
             max_alpha = max(max_alpha, alpha_C_sum)
+                    
             
-        return max_alpha
+            
+        return max_alpha + 1
 
     def run(self):
         return self.computing_independent_set_number()

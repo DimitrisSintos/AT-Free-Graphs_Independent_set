@@ -1,6 +1,7 @@
 from graph import Graph
 from polynomial_time_algorithm import PolynomialTimeAlgorithm
 from graph_parser import GraphParser
+from brute_force import BruteForce
 import sys
 
 
@@ -35,8 +36,13 @@ def main(argv):
         at_free_graph = GraphParser.parse_graph_from_file(file_path)
 
     # at_free_graph.show()
+    
+    
     algorithm = PolynomialTimeAlgorithm(at_free_graph,5)
     algorithm.run()
+    
+    brute_force = BruteForce(at_free_graph)
+    print("Brute force: " + str(brute_force.run()))
 
 
 if __name__ == "__main__":

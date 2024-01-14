@@ -40,6 +40,7 @@ def main(argv):
     
     algorithm = PolynomialTimeAlgorithm(at_free_graph,5)
     algorithm.run()
+    at_free_graph.show()
     
     brute_force = BruteForce(at_free_graph)
     print("Brute force: " + str(brute_force.run()))

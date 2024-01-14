@@ -23,6 +23,8 @@ class Graph:
         self.components = {}
         self.num_of_components = {}
         self.intervals = {}
+        
+        self.independent_set = set()
             
     
     def compute_all_components(self):
@@ -119,7 +121,10 @@ class Graph:
         net = Network(height="500px", width="100%", bgcolor="#222222", font_color="white")
 
         for vertex in self.vertices:
-            net.add_node(vertex)
+            if vertex in self.independent_set:
+                net.add_node(vertex, color="red")
+            else:
+                net.add_node(vertex)
             
 
         for edge in self.edges:

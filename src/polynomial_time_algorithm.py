@@ -156,13 +156,47 @@ class PolynomialTimeAlgorithm:
         """
         
         max_alpha = 0
+        max_alpha_component = None
         for x in self.graph.vertices:
             alpha_C_sum = sum(self.alpha_C((x,i)) for i in range(self.graph.num_of_components[x]))
-            max_alpha = max(max_alpha, alpha_C_sum)
+            if max_alpha < alpha_C_sum:
+                max_alpha = alpha_C_sum
+                max_alpha_component = x
                     
             
-            
+        print("max_alpha_component:", max_alpha_component)
+        independent_set = self.compute_independent_set(max_alpha_component)
+        print("max independent set:", independent_set)
+        self.graph.independent_set = independent_set
+        # self.graph.show()
         return max_alpha + 1
+    
+    def compute_independent_set(self, x):
+        independent_set = set()
+        independent_set.add(x)
+        print("independent_set:", independent_set)
+        
+        for i in range(self.graph.num_of_components[x]):
+            component_key = (x, i)
+            component = self.graph.components[component_key]
+            vertices_added = 0
+            
+            for vertex in component.vertices:
+                if vertex not in independent_set and self.not_adjacent_to_set(vertex, independent_set):
+                    independent_set.add(vertex)
+                    print("independent_set:", independent_set)
+                    vertices_added += 1
+                
+                if vertices_added == component.alpha:
+                    break
+                
+        return independent_set
+
+    def not_adjacent_to_set(self, vertex, independent_set):
+        for neighbor in self.graph.adjacency_list[vertex]:
+            if neighbor in independent_set:
+                return False
+        return True
 
     def run(self):
         return self.computing_independent_set_number()

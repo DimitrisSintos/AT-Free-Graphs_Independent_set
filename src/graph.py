@@ -28,10 +28,8 @@ class Graph:
             
     
     def compute_all_components(self):
-        print("self.vertices:", self.vertices)
         for vertex in self.vertices:
             vertex_components = self.compute_components_of_vertex(vertex)
-            print("vertex_components:", vertex_components)
             self.num_of_components[vertex] = len(vertex_components)
             for i in range(len(vertex_components)):
                 self.components[(vertex, i)] = Component(vertex, i, vertex_components[i])

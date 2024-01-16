@@ -4,10 +4,11 @@ from itertools import combinations
 
 
 class PolynomialTimeAlgorithm:
-    def __init__(self,graph : Graph, weight : int):
+    def __init__(self,graph : Graph):
         self.graph = graph
-        self.weight = weight
-        self.intervals = {}
+
+        self.max_interval_vertices_set = {}
+        self.max_component_vertices_set = {}
 
 
 
@@ -38,7 +39,7 @@ class PolynomialTimeAlgorithm:
             print(interval)
                 
         # Step 3
-        sorted_components = sorted(self.graph.components.keys(), key=lambda x: len(self.graph.components[x]))
+        sorted_components = sorted(self.graph.components.keys(), key=lambda x: len(self.graph.components[x]))#TODO: Short components with backet sort
         print("\nSorted components:", sorted_components, len(sorted_components), type(sorted_components))
         
         
@@ -53,9 +54,7 @@ class PolynomialTimeAlgorithm:
         print('\n\n\n')
         print("Graph intependent set number:", self.alpha_G())
             
-        
-        
-    
+            
     def alpha_C(self,component_key):
         component = self.graph.components[component_key]
         print(component)
@@ -67,52 +66,83 @@ class PolynomialTimeAlgorithm:
         component_vertices = component.vertices
 
         max_alpha = 0
+        self.max_component_vertices_set[component_key] = set()
+        max_y = None
+        max_D_y_components_vertices = set()
         for y in component_vertices: # y E Cx
             alpha_I_xy = self.alpha_I((x, y))
-            print("alpha_I_xy:", alpha_I_xy) 
-            alpha_D_sum = sum(self.alpha_C(D_iy) for D_iy in self.compute_D_iy(y, component_vertices))
-            max_alpha = max(max_alpha, alpha_I_xy + alpha_D_sum)
 
+            D_y_components = self.compute_D_iy(y, component_vertices)
+            
+            alpha_D_sum = sum(self.alpha_C(D_iy) for D_iy in D_y_components)
+            if max_alpha <= alpha_I_xy + alpha_D_sum:
+                max_alpha = alpha_I_xy + alpha_D_sum
+                max_y = y
+                max_D_y_components_vertices = set()
+                for D_iy in D_y_components:
+                    max_D_y_components_vertices = max_D_y_components_vertices.union(self.max_component_vertices_set[D_iy])
 
+        
         alpha_value = 1 + max_alpha
+        
+        self.max_component_vertices_set[component_key] = max_D_y_components_vertices.union({max_y})
+        if (x,max_y) in self.graph.intervals:
+            self.max_component_vertices_set[component_key] = self.max_component_vertices_set[component_key].union(self.max_interval_vertices_set[(x,max_y)])
+        print(f"self.max_component_vertices_set[{component_key}]:{self.max_component_vertices_set[component_key]}")
         
         component.alpha = alpha_value
         
     
-        print('Computed Component Alpha', self.graph.components[component_key])
+        print(f'Computed Component,{component_key} Alpha: {self.graph.components[component_key]}')
+        
         return alpha_value
     
     def alpha_I(self, I):
         
         try:
             interval = self.graph.intervals[I]
-            print("Interval:", interval)
+            print(interval)
             if interval.alpha is not None:
+                print(f"Interval ({I}) is already computed with alpha: {interval.alpha}")
                 return interval.alpha
             
             x = interval.x
             y = interval.y
             I_vertices = interval.vertices
-            print("I_vertices:", I_vertices)
-            
-            
 
             max_alpha = 0
+            self.max_interval_vertices_set[I] = set()
+            max_s = None
+            max_C_s_components_vertices = set()
             for s in I_vertices: 
                 alpha_I_xs = self.alpha_I((x, s)) 
                 alpha_I_sy = self.alpha_I((s, y))
-                alpha_C_sum = sum(self.alpha_C(C_is) for C_is in self.compute_C_is(s, I_vertices))
-                max_alpha = max(max_alpha, alpha_I_xs + alpha_I_sy + alpha_C_sum)
-                
-            
-            
+                C_s_components = self.compute_C_is(s, I_vertices)
+                alpha_C_sum = sum(self.alpha_C(C_is) for C_is in C_s_components)
+                # max_alpha = max(max_alpha, alpha_I_xs + alpha_I_sy + alpha_C_sum)
+                if max_alpha <= alpha_I_xs + alpha_I_sy + alpha_C_sum:
+                    max_alpha = alpha_I_xs + alpha_I_sy + alpha_C_sum
+                    max_s = s
+                    max_C_s_components_vertices = set()
+                    for C_is in C_s_components:
+                        max_C_s_components_vertices = max_C_s_components_vertices.union(self.max_component_vertices_set[C_is])
+                    
            
             alpha_value = 1 + max_alpha
+            print("interval alpha:", alpha_value)
+
+            print("max_C_s_components_vertices", max_C_s_components_vertices)
+            interval_x_s_vertices = self.graph.intervals[(x, max_s)].vertices if (x, max_s) in self.graph.intervals else set()
+            print("interval_x_s_vertices:", interval_x_s_vertices)
+            interval_s_y_vertices = self.graph.intervals[(max_s, y)].vertices if (max_s, y) in self.graph.intervals else set()
+            print("interval_s_y_vertices:", interval_s_y_vertices)
+            self.max_interval_vertices_set[I] = interval_x_s_vertices.union(interval_s_y_vertices).union(max_C_s_components_vertices).union({max_s})
+            print(f"self.max_interval_vertices_set[{I}]: {self.max_interval_vertices_set[I]}")
             
             interval.alpha = alpha_value
             
             
-            print('Computed Interval alpha:', self.graph.intervals[I] )
+            print(f'Computed Interval({I}) alpha:{self.graph.intervals[I]}')
             
             return alpha_value
         except:
@@ -165,38 +195,14 @@ class PolynomialTimeAlgorithm:
                     
             
         print("max_alpha_component:", max_alpha_component)
-        independent_set = self.compute_independent_set(max_alpha_component)
+        independent_set = {max_alpha_component}
+        for i in range(self.graph.num_of_components[max_alpha_component]):
+            component_key = (max_alpha_component, i)
+            independent_set = independent_set.union(self.max_component_vertices_set[component_key])
         print("max independent set:", independent_set)
         self.graph.independent_set = independent_set
         # self.graph.show()
         return max_alpha + 1
     
-    def compute_independent_set(self, x):
-        independent_set = set()
-        independent_set.add(x)
-        print("independent_set:", independent_set)
-        
-        for i in range(self.graph.num_of_components[x]):
-            component_key = (x, i)
-            component = self.graph.components[component_key]
-            vertices_added = 0
-            
-            for vertex in component.vertices:
-                if vertex not in independent_set and self.not_adjacent_to_set(vertex, independent_set):
-                    independent_set.add(vertex)
-                    print("independent_set:", independent_set)
-                    vertices_added += 1
-                
-                if vertices_added == component.alpha:
-                    break
-                
-        return independent_set
-
-    def not_adjacent_to_set(self, vertex, independent_set):
-        for neighbor in self.graph.adjacency_list[vertex]:
-            if neighbor in independent_set:
-                return False
-        return True
-
     def run(self):
         return self.computing_independent_set_number()

@@ -38,7 +38,7 @@ def main(argv):
     # at_free_graph.show()
     
     
-    algorithm = PolynomialTimeAlgorithm(at_free_graph,5)
+    algorithm = PolynomialTimeAlgorithm(at_free_graph)
     algorithm.run()
     at_free_graph.show()
     

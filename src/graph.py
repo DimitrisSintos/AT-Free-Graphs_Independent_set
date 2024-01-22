@@ -25,6 +25,7 @@ class Graph:
         self.intervals = {}
         
         self.independent_set = set()
+        self.non_adjacent_vertices_component_pointer = {}
             
     
     def compute_all_components(self):
@@ -43,10 +44,11 @@ class Graph:
         components = []
         visited = set()
         
-        def dfs(vertex,component):
-            visited.add(vertex)
-            component.add(vertex)
-            for neighbor in self.adjacency_list[vertex]:
+        def dfs(node,component):
+            visited.add(node)
+            component.add(node)
+            self.non_adjacent_vertices_component_pointer[(vertex, node)] = (vertex, len(components))
+            for neighbor in self.adjacency_list[node]:
                 if neighbor not in visited and neighbor in components_vertices:
                     dfs(neighbor, component)
         
@@ -66,9 +68,7 @@ class Graph:
     def closed_neighborhood_of_set(self, vertex_set):
         closed_neighborhood = set()
         for vertex in vertex_set:
-            # Ensure vertex is in the correct format (e.g., string)
-            vertex_str = str(vertex)
-            closed_neighborhood = closed_neighborhood.union(self.closed_neighborhood(vertex_str))
+            closed_neighborhood = closed_neighborhood.union(self.closed_neighborhood(vertex))
         return closed_neighborhood
     
     
@@ -90,22 +90,12 @@ class Graph:
         Cx_y = None
         Cy_x = None
         
-        #TODO: For all nonadjacent vertices x and x there is a pointer P(x,y) to the list of Cx_y
-        for i in range(self.num_of_components[x]):
-            component = self.components[(x, i)]
-            if y in component.vertices:
-                Cx_y = component.vertices
-                break
+        Cx_y_pointer = self.non_adjacent_vertices_component_pointer[(x, y)]
+        Cy_x_pointer = self.non_adjacent_vertices_component_pointer[(y, x)]
         
-        for i in range(self.num_of_components[y]):
-            component = self.components[(y, i)]
-            if x in component.vertices:
-                Cy_x = component.vertices
-                break
-            
-        # print("Cx_y:", Cx_y)
-        # print("Cy_x:", Cy_x)
-
+        Cx_y = self.components[Cx_y_pointer].vertices 
+        Cy_x = self.components[Cy_x_pointer].vertices 
+        
         interval = Cx_y.intersection(Cy_x) if Cx_y is not None and Cy_x is not None else None
         return interval
     

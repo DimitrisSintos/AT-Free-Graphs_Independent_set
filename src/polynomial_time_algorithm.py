@@ -1,4 +1,6 @@
 from graph import Graph
+from bucket_sort import BucketSort
+
 from itertools import combinations
 
 
@@ -39,13 +41,17 @@ class PolynomialTimeAlgorithm:
             print(interval)
                 
         # Step 3
-        sorted_components = sorted(self.graph.components.keys(), key=lambda x: len(self.graph.components[x]))#TODO: Short components with backet sort
-        print("\nSorted components:", sorted_components, len(sorted_components), type(sorted_components))
-        
-        
-        sorted_intervals = sorted(self.graph.intervals.keys(), key=lambda x: len(self.graph.intervals[x]))
-        print("\nSorted intervals:", sorted_intervals, len(sorted_intervals), type(sorted_intervals))
-        
+
+        # Sort components
+        bucket_sort_components = BucketSort(list(self.graph.components.keys()), key_function=lambda x: len(self.graph.components[x]))
+        sorted_components = bucket_sort_components.sort()
+
+        # Sort intervals
+        bucket_sort_intervals = BucketSort(list(self.graph.intervals.keys()), key_function=lambda x: len(self.graph.intervals[x]))
+        sorted_intervals = bucket_sort_intervals.sort()
+
+        # print("\nSorted components:", sorted_components, len(sorted_components), type(sorted_components))
+        # print("\nSorted intervals:", sorted_intervals, len(sorted_intervals), type(sorted_intervals))
         # Step 4
         for key in sorted_components:
             self.alpha_C(key)
